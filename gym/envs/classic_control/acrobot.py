@@ -91,13 +91,16 @@ class AcrobotEnv(core.Env):
         self.action_space = spaces.Discrete(3)
         self.state = None
         self._seed()
+        self.target_state=[pi, 0, 0, 0] # target state, theta1 = 0 ,theta2 = 0, d_theta1 = 0, d_theta2 = 0
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _reset(self):
-        self.state = self.np_random.uniform(low=-0.1, high=0.1, size=(4,))
+    def _reset(self): # initial state is [0, 0, 0, 0], theta1, theta2, d_theta1, d_theta2
+        #self.state = self.np_random.uniform(low=-0.1, high=0.1, size=(4,))
+        self.state = np.zeros(4)
+        self.state[0] = pi/2
         return self._get_ob()
 
     def _step(self, a):
@@ -126,17 +129,43 @@ class AcrobotEnv(core.Env):
         ns[2] = bound(ns[2], -self.MAX_VEL_1, self.MAX_VEL_1)
         ns[3] = bound(ns[3], -self.MAX_VEL_2, self.MAX_VEL_2)
         self.state = ns
+        loss = self.get_loss()
         terminal = self._terminal()
-        reward = -1. if not terminal else 0.
+        reward = -loss
         return (self._get_ob(), reward, terminal, {})
 
     def _get_ob(self):
         s = self.state
         return np.array([cos(s[0]), np.sin(s[0]), cos(s[1]), sin(s[1]), s[2], s[3]])
 
+    def angle_to_vector(self, angle):
+        return np.array([np.cos(angle), np.sin(angle)])
+
+    def angle_of_two_normal_vectors(self, v1, v2):
+        return np.arccos(np.dot(v1, v2)) # [0, pi]
+
+    def difference_two_states(self):
+        diff_angles = []
+        for i in range(2):
+            v1_state = self.angle_to_vector(self.state[i])
+            v2_target = self.angle_to_vector(self.target_state[i])
+            diff_angles.append(self.angle_of_two_normal_vectors(v1_state, v2_target))
+        diff_angles = np.array(diff_angles)
+
+        diff_angular_velocity = np.abs(self.state[2:] - self.target_state[2:])
+        diff_angular_velocity = np.array(diff_angular_velocity)
+        return [diff_angles, diff_angular_velocity]
+
+    def get_loss(self):
+        diff_angles, diff_angular_velocity = self.difference_two_states()
+        # assert np.linalg.norm(diff_angles, ord=2) == np.sqrt(np.dot(diff_angles, diff_angles.T))
+        return np.linalg.norm(diff_angles, ord=2)
+
+
     def _terminal(self):
-        s = self.state
-        return bool(-np.cos(s[0]) - np.cos(s[1] + s[0]) > 1.)
+        # s = self.state # terminal state is s[0]
+        # return bool(-np.cos(s[0]) - np.cos(s[1] + s[0]) > 1.)
+        return self.get_loss() < 1e-3
 
     def _dsdt(self, s_augmented, t):
         m1 = self.LINK_MASS_1
