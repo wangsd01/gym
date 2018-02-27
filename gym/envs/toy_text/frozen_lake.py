@@ -75,6 +75,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
         def to_s(row, col):
             return row*ncol + col
+        
         def inc(row, col, a):
             if a==0: # left
                 col = max(col-1,0)
@@ -113,9 +114,7 @@ class FrozenLakeEnv(discrete.DiscreteEnv):
 
         super(FrozenLakeEnv, self).__init__(nS, nA, P, isd)
 
-    def _render(self, mode='human', close=False):
-        if close:
-            return
+    def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
 
         row, col = self.s // self.ncol, self.s % self.ncol
