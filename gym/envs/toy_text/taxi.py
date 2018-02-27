@@ -1,9 +1,8 @@
-import numpy as np
 import sys
 from six import StringIO
-
-from gym import spaces, utils
+from gym import utils
 from gym.envs.toy_text import discrete
+import numpy as np
 
 MAP = [
     "+---------+",
@@ -48,10 +47,10 @@ class TaxiEnv(discrete.DiscreteEnv):
             for col in range(5):
                 for passidx in range(5):
                     for destidx in range(4):
+                        state = self.encode(row, col, passidx, destidx)
                         if passidx < 4 and passidx != destidx:
                             isd[state] += 1
                         for a in range(nA):
-                            state = self.encode(row, col, passidx, destidx)
                             # defaults
                             newrow, newcol, newpassidx = row, col, passidx
                             reward = -1
@@ -107,10 +106,7 @@ class TaxiEnv(discrete.DiscreteEnv):
         assert 0 <= i < 5
         return reversed(out)
 
-    def _render(self, mode='human', close=False):
-        if close:
-            return
-
+    def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
 
         out = self.desc.copy().tolist()

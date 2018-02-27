@@ -1,16 +1,14 @@
 """
 Classic cart-pole system implemented by Rich Sutton et al.
-Copied from https://webdocs.cs.ualberta.ca/~sutton/book/code/pole.c
+Copied from http://incompleteideas.net/sutton/book/code/pole.c
+permalink: https://perma.cc/C9ZM-652R
 """
 
-import logging
 import math
 import gym
-from gym import spaces
+from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
-
-logger = logging.getLogger(__name__)
 
 class CartPoleEnv(gym.Env):
     metadata = {
@@ -42,23 +40,17 @@ class CartPoleEnv(gym.Env):
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(-high, high)
 
-        self._seed()
-        self.reset()
+        self.seed()
         self.viewer = None
+        self.state = None
 
         self.steps_beyond_done = None
 
-        # Just need to initialize the relevant attributes
-        self._configure()
-
-    def _configure(self, display=None):
-        self.display = display
-
-    def _seed(self, seed=None):
+    def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _step(self, action):
+    def step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
         state = self.state
         x, x_dot, theta, theta_dot = state
@@ -93,18 +85,12 @@ class CartPoleEnv(gym.Env):
 
         return np.array(self.state), reward, done, {}
 
-    def _reset(self):
+    def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         return np.array(self.state)
 
-    def _render(self, mode='human', close=False):
-        if close:
-            if self.viewer is not None:
-                self.viewer.close()
-                self.viewer = None
-            return
-
+    def render(self, mode='human'):
         screen_width = 600
         screen_height = 400
 
@@ -118,7 +104,7 @@ class CartPoleEnv(gym.Env):
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(screen_width, screen_height, display=self.display)
+            self.viewer = rendering.Viewer(screen_width, screen_height)
             l,r,t,b = -cartwidth/2, cartwidth/2, cartheight/2, -cartheight/2
             axleoffset =cartheight/4.0
             cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
@@ -141,9 +127,14 @@ class CartPoleEnv(gym.Env):
             self.track.set_color(0,0,0)
             self.viewer.add_geom(self.track)
 
+        if self.state is None: return None
+
         x = self.state
         cartx = x[0]*scale+screen_width/2.0 # MIDDLE OF CART
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
+
+    def close(self):
+        if self.viewer: self.viewer.close()
