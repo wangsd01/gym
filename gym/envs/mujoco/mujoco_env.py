@@ -46,7 +46,7 @@ class MujocoEnv(gym.Env):
         bounds = self.model.actuator_ctrlrange.copy()
         low = bounds[:, 0]
         high = bounds[:, 1]
-        self.action_space = spaces.Box(low=low, high=high)
+        self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
 
         high = np.inf*np.ones(self.obs_dim)
         low = -high
@@ -127,7 +127,7 @@ class MujocoEnv(gym.Env):
             if mode == 'human':
                 self.viewer = mujoco_py.MjViewer(self.sim)
             elif mode == 'rgb_array':
-                self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, 0)
+                self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, -1)
             self.viewer_setup()
             self._viewers[mode] = self.viewer
         return self.viewer
